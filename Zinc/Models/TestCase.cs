@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.Text.Json.Serialization;
 using Zinc.Core.Models;
 
 namespace Zinc.Models;
@@ -17,14 +18,18 @@ public partial class TestCase : ObservableObject
     private string? _expectedOutput;
 
     [ObservableProperty]
+    [property: JsonIgnore]
     private string? _actualOutput;
 
     [ObservableProperty]
+    [property: JsonIgnore]
     private string? _errorOutput;
 
     [ObservableProperty]
+    [property: JsonIgnore]
     private JudgeResult? _result;
 
     [ObservableProperty]
+    [property: JsonIgnore]
     private double _executionTimeMs;
 }

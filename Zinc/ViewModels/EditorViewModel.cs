@@ -7,11 +7,17 @@ using AvaloniaEdit.TextMate;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TextMateSharp.Grammars;
 using Zinc.Abstractions;
@@ -38,6 +44,9 @@ public partial class EditorViewModel : ObservableObject, IDisposable
         new() { Name = "C++代码文件", Patterns = ["*.cpp", "*.cxx"] }
     ];
 
+    private readonly DispatcherTimer _testCaseSaveTimer;
+    private bool _isLoading = false;
+
     #endregion
 
     #region Dependencies and Fields
@@ -54,6 +63,8 @@ public partial class EditorViewModel : ObservableObject, IDisposable
     private bool _autoFormatQueued;
 
     private static readonly TimeSpan AutoFormatDelay = TimeSpan.FromMilliseconds(400);
+    private static readonly TimeSpan AutoSaveDelay = TimeSpan.FromMilliseconds(800);
+    private static readonly ConcurrentDictionary<string, bool> IgnoredPropertiesCache = new();
 
     #endregion
 
@@ -146,6 +157,19 @@ public partial class EditorViewModel : ObservableObject, IDisposable
 
         ApplyEditorOptions();
         _settingsService.SettingsChanged += OnSettingsChanged;
+
+        _testCaseSaveTimer = new DispatcherTimer { Interval = AutoSaveDelay };
+        _testCaseSaveTimer.Tick += async (_, _) => {
+            _testCaseSaveTimer.Stop();
+            await SaveTestCasesAsync();
+        };
+
+        TestCases.CollectionChanged += OnTestCasesCollectionChanged;
+
+        if (!string.IsNullOrEmpty(FilePath))
+        {
+            _ = LoadTestCasesAsync();
+        }
     }
 
     public override string ToString() => Header;
@@ -182,6 +206,13 @@ public partial class EditorViewModel : ObservableObject, IDisposable
     {
         _settingsService.SettingsChanged -= OnSettingsChanged;
         Content.TextChanged -= OnDocumentTextChanged;
+
+        _testCaseSaveTimer.Stop();
+        TestCases.CollectionChanged -= OnTestCasesCollectionChanged;
+        foreach (var tc in TestCases)
+        {
+            tc.PropertyChanged -= OnTestCasePropertyChanged;
+        }
 
         if (_editor is not null)
         {
@@ -254,6 +285,108 @@ public partial class EditorViewModel : ObservableObject, IDisposable
             TestCases[i].Index = i + 1;
     }
 
+    private void OnTestCasesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+        {
+            foreach (TestCase item in e.NewItems)
+                item.PropertyChanged += OnTestCasePropertyChanged;
+        }
+
+        // 防止内存泄漏
+        if (e.OldItems != null)
+        {
+            foreach (TestCase item in e.OldItems)
+                item.PropertyChanged -= OnTestCasePropertyChanged;
+        }
+
+        RequestTestCasesSave();
+    }
+
+    private void OnTestCasePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.PropertyName))
+            return;
+
+        // 判断该属性是否带有 [JsonIgnore]
+        bool isIgnored = IgnoredPropertiesCache.GetOrAdd(e.PropertyName, propName =>
+        {
+            var propInfo = typeof(TestCase).GetProperty(propName);
+            return propInfo == null || propInfo.GetCustomAttribute<JsonIgnoreAttribute>() != null;
+        });
+
+        if (isIgnored)
+            return;
+
+        RequestTestCasesSave();
+    }
+
+    private void RequestTestCasesSave()
+    {
+        if (_isLoading) return;
+
+        // 防抖
+        _testCaseSaveTimer.Stop();
+        _testCaseSaveTimer.Start();
+    }
+
+    private string? GetTestCasesPath()
+    {
+        if (string.IsNullOrEmpty(FilePath)) return null;
+        return FilePath + ".testcases.json";
+    }
+
+    private async Task LoadTestCasesAsync()
+    {
+        var path = GetTestCasesPath();
+        if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+        try
+        {
+            _isLoading = true;
+            var json = await File.ReadAllTextAsync(path);
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var list = JsonSerializer.Deserialize<List<TestCase>>(json, options);
+
+            if (list != null)
+            {
+                TestCases.Clear();
+                foreach (var tc in list)
+                {
+                    TestCases.Add(tc);
+                }
+
+                RenumberTestCases();
+                SelectedTestCase = TestCases.FirstOrDefault();
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"加载测试点失败: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveTestCasesAsync()
+    {
+        var path = GetTestCasesPath();
+        if (string.IsNullOrEmpty(path)) return;
+
+        try
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(TestCases, options);
+            await File.WriteAllTextAsync(path, json);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"保存测试点失败: {ex.Message}");
+        }
+    }
+
     #endregion
 
     #region File Commands
@@ -273,6 +406,10 @@ public partial class EditorViewModel : ObservableObject, IDisposable
         }
 
         WriteFile(FilePath!, Content.Text);
+
+        _testCaseSaveTimer.Stop();
+        await SaveTestCasesAsync();
+
         IsDirty = false;
         return true;
     }
@@ -288,6 +425,10 @@ public partial class EditorViewModel : ObservableObject, IDisposable
 
         ApplyPath(selectedPath);
         WriteFile(selectedPath, Content.Text);
+
+        _testCaseSaveTimer.Stop();
+        await SaveTestCasesAsync();
+
         IsDirty = false;
     }
 
@@ -354,8 +495,6 @@ public partial class EditorViewModel : ObservableObject, IDisposable
         }
 
         var summary = $"测试完成 通过 {passed}/{judged}";
-        if (skipped > 0)
-            summary += $"（跳过 {skipped} 个未填写输入或期望输出的测试点）";
 
         AppendLog(summary);
     }
@@ -575,12 +714,6 @@ public partial class EditorViewModel : ObservableObject, IDisposable
     private void LogTestResult(TestCase tc, ExecutionResult result)
     {
         AppendLog($"[测试点 {tc.Index}] 状态: {result.Result}, 耗时: {result.ExecutionTime.TotalMilliseconds:F2}ms");
-
-        if (result.Result == JudgeResult.WA && result.Differences.Count > 0)
-        {
-            foreach (var diff in result.Differences)
-                AppendLog($"  第 {diff.LineNumber} 行 实际: {diff.Actual}");
-        }
 
         if (!string.IsNullOrEmpty(result.ErrorOutput))
             AppendRawLog($"=== 错误输出 ===\n{result.ErrorOutput}");
