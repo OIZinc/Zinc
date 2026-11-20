@@ -1,10 +1,14 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Avalonia.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FluentAvalonia.UI.Controls;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Zinc.Abstractions;
 using Zinc.Core.Abstractions;
@@ -60,8 +64,26 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>关闭标签页；关闭最后一个标签页时自动补一个空白页。</summary>
-    public void CloseTab(EditorViewModel vm)
+    public async Task CloseTab(EditorViewModel vm)
     {
+        if (vm.IsDirty || string.IsNullOrEmpty(vm.FilePath))
+        {
+            await new FAContentDialog()
+            {
+                Title = "是否要保存代码？",
+                Content = new TextBlock()
+                {
+                    Text = vm.FileName + " 有未保存的更改。"
+                },
+                PrimaryButtonText = "保存并退出",
+                PrimaryButtonCommand = saveCurrentTabCommand,
+                SecondaryButtonText = "不保存并退出",
+                SecondaryButtonCommand = null,
+                CloseButtonText = "取消",
+                DefaultButton = FAContentDialogButton.Primary
+            }.ShowAsync();
+        }
+
         Tabs.Remove(vm);
         vm.Dispose();
 

@@ -1,4 +1,7 @@
+using Avalonia.Controls;
+using Avalonia.Controls.Notifications;
 using FluentAvalonia.UI.Windowing;
+using System;
 using Zinc.Services;
 
 namespace Zinc.Views;

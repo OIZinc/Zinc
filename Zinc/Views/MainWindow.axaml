@@ -12,7 +12,5 @@
 		Title="Zinc"
 		Opacity="{Binding Settings.Opacity}">
 
-	<!-- 预览器的绑定类型由 x:DataType 提供；运行时 DataContext 由构造函数从 App.Services 取得。 -->
-
 	<views:MainView DataContext="{Binding MainViewModel}"/>
 </Window>
