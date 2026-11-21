@@ -1,4 +1,4 @@
-﻿using Avalonia.Input;
+using Avalonia.Input;
 using Avalonia.Threading;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
@@ -92,6 +92,10 @@ public partial class EditorViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string? _filePath = string.Empty;
+
+    /// <summary>光标在文档中的字符偏移量，用于会话恢复。</summary>
+    [ObservableProperty]
+    private int _caretOffset;
 
     [ObservableProperty]
     private string? _log = string.Empty;
@@ -244,6 +248,21 @@ public partial class EditorViewModel : ObservableObject, IDisposable
         _editor.TextArea.TextEntering += OnTextEntering;
 
         _initEditor();
+
+        // 恢复会话保存的光标位置。延迟到控件就绪后设置，避免被
+        // AvaloniaEdit 文档加载后的内部逻辑重置。
+        if (_editor?.TextArea is { } textArea)
+        {
+            textArea.Caret.PositionChanged += OnCaretPositionChanged;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_editor is not null && _editor.TextArea is { } ta)
+                {
+                    ta.Caret.Offset = CaretOffset;
+                }
+            }, DispatcherPriority.Loaded);
+        }
     }
     public void DetachEditor(TextEditor editor)
     {
@@ -252,8 +271,18 @@ public partial class EditorViewModel : ObservableObject, IDisposable
             if (_editor?.TextArea is not null)
             {
                 _editor.TextArea.TextEntering -= OnTextEntering;
+                _editor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged;
+                CaretOffset = _editor.TextArea.Caret.Offset;
             }
             _editor = null;
+        }
+    }
+
+    private void OnCaretPositionChanged(object? sender, EventArgs e)
+    {
+        if (_editor?.TextArea is { } textArea)
+        {
+            CaretOffset = textArea.Caret.Offset;
         }
     }
 

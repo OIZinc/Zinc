@@ -48,6 +48,7 @@ namespace Zinc
             services.AddSingleton<IProgramService, ProgramService>();
             services.AddSingleton<IEditorViewModelFactory, EditorViewModelFactory>();
             services.AddSingleton<IWindowService, WindowService>();
+            services.AddSingleton<ISessionService, SessionService>();
 
             services.AddSingleton<MainWindowViewModel>();
             services.AddSingleton<MainViewModel>();
