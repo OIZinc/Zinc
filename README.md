@@ -1,14 +1,14 @@
 <div align="center">
 
-# <image src="https://raw.githubusercontent.com/niuzhix/Zinc/refs/heads/master/Zinc/Assets/Zinc.ico" height="28" width="28"/> Zinc
+# <image src="https://raw.githubusercontent.com/OIZinc/Zinc/refs/heads/master/Zinc/Assets/Zinc.ico" height="28" width="28"/> Zinc
 
-[![Stars](https://img.shields.io/github/stars/niuzhix/Zinc?label=Stars)](https://github.com/niuzhix/Zinc)
-[![正式版 Release](https://img.shields.io/github/v/release/niuzhix/Zinc?style=flat-square&color=%233fb950&label=正式版)](https://github.com/niuzhix/Zinc/releases/latest)
-[![下载量](https://img.shields.io/github/downloads/niuzhix/Zinc/total?style=social&label=下载量&logo=github)](https://github.com/niuzhix/Zinc/releases/latest)
+[![Stars](https://img.shields.io/github/stars/OIZinc/Zinc?label=Stars)](https://github.com/OIZinc/Zinc)
+[![正式版 Release](https://img.shields.io/github/v/release/OIZinc/Zinc?style=flat-square&color=%233fb950&label=正式版)](https://github.com/OIZinc/Zinc/releases/latest)
+[![下载量](https://img.shields.io/github/downloads/OIZinc/Zinc/total?style=social&label=下载量&logo=github)](https://github.com/OIZinc/Zinc/releases/latest)
 <br/>
 ![.NET 版本](https://img.shields.io/badge/.NET-10-512bd4?style=flat-square)
-![GitHub Repo size](https://img.shields.io/github/repo-size/niuzhix/Zinc?style=flat-square&color=3cb371)
-[![GitHub Repo Languages](https://img.shields.io/github/languages/top/niuzhix/Zinc?style=flat-square)](https://github.com/niuzhix/Zinc/search?l=C%23)
+![GitHub Repo size](https://img.shields.io/github/repo-size/OIZinc/Zinc?style=flat-square&color=3cb371)
+[![GitHub Repo Languages](https://img.shields.io/github/languages/top/OIZinc/Zinc?style=flat-square)](https://github.com/OIZinc/Zinc/search?l=C%23)
 
 Zinc 是一款面向 OIer（信息学竞赛选手）的代码编辑器，可以一目了然地编辑并调试代码。
 <br/>
@@ -52,7 +52,7 @@ Zinc 是一款面向 OIer（信息学竞赛选手）的代码编辑器，可以�
 - Debian（或其衍生版）10 或更高版本，X11 图形环境
 
 > [!IMPORTANT]
-> **详细安装说明请参阅 [ClassIsland 文档](https://zinc.niuzhix.dpdns.org/get-started/setup)。**
+> **详细安装说明请参阅 [Zinc 文档](https://zinc.niuzhix.dpdns.org/get-started/setup)。**
 >
 > 不建议在 Windows 10 以下的系统运行本应用。在 Windows 7 中，.NET 运行时会产生**严重的内存泄漏问题**。
 >
@@ -60,11 +60,15 @@ Zinc 是一款面向 OIer（信息学竞赛选手）的代码编辑器，可以�
 
 对于普通用户，可以在以下渠道下载到本软件，请根据自身网络环境选择合适的渠道。
 
-- [GitHub Releases](https://github.com/niuzhix.Zinc/releases/)
+- [GitHub Releases](https://github.com/OIZinc.Zinc/releases/)
 
 ## 开发
 
 ![Alt](https://repobeats.axiom.co/api/embed/12baeb8a3180933f09d0e80a5cb4975e974e781f.svg "Repobeats analytics image")
+
+## 致谢
+
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
 
 ## 许可证
 
