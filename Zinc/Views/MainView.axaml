@@ -51,7 +51,12 @@
 			  TabStripLocation="{Binding Settings.TabPositon}">
 			<ui:FATabView.Styles>
 				<Style Selector="ui|FATabViewItem" x:DataType="vm:EditorViewModel">
-					<Setter Property="Header" Value="{Binding Header}" />
+					<Setter Property="Header" Value="{Binding}" />
+					<Setter Property="HeaderTemplate">
+						<DataTemplate x:DataType="vm:EditorViewModel">
+							<TextBlock Text="{Binding Header}" />
+						</DataTemplate>
+					</Setter>
 					<Setter Property="ContentTemplate">
 						<DataTemplate>
 							<views:EditorView />
