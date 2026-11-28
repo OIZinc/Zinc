@@ -1,3 +1,8 @@
+> [!Warning]
+> NOTE: This repository is no longer actively maintained.
+> 注：本仓库已停止维护。
+
+
 <div align="center">
 
 # <image src="https://raw.githubusercontent.com/OIZinc/Zinc/refs/heads/master/Zinc/Assets/Zinc.ico" height="28" width="28"/> Zinc
