@@ -11,35 +11,80 @@ public class OutputComparer : IOutputComparer
     {
         var result = new ComparisonResult();
 
-        var normalizedActual = NormalizeOutput(actual ?? string.Empty);
-        var normalizedExpected = NormalizeOutput(expected ?? string.Empty);
+        var actualLines = SplitLines(actual);
+        var expectedLines = SplitLines(expected);
 
-        result.NormalizedActual = normalizedActual;
-        result.NormalizedExpected = normalizedExpected;
+        // 判定基于归一化后的行内容；差异展示基于原始行内容。
+        result.NormalizedActual = string.Join("\n", actualLines.Select(TrimLineEnd));
+        result.NormalizedExpected = string.Join("\n", expectedLines.Select(TrimLineEnd));
 
-        if (string.Equals(normalizedActual, normalizedExpected))
+        int actualEnd = ContentLineCount(actualLines);
+        int expectedEnd = ContentLineCount(expectedLines);
+
+        result.IsMatch = LinesEqual(actualLines, expectedLines, actualEnd, expectedEnd);
+
+        if (!result.IsMatch)
         {
-            result.IsMatch = true;
-            return result;
+            CollectDifferences(result, actualLines, expectedLines, actualEnd, expectedEnd);
         }
 
-        if (string.Equals(normalizedActual.TrimEnd(), normalizedExpected.TrimEnd()))
+        return result;
+    }
+
+    /// <summary>换行归一化为 \n 后按行切分，保留原始行内容。</summary>
+    private static string[] SplitLines(string? text)
+        => NormalizeNewlines(text ?? string.Empty)
+            .Split('\n');
+
+    private static string NormalizeNewlines(string text)
+        => text.Replace("\r\n", "\n").Replace('\r', '\n');
+
+    /// <summary>去掉一行末尾的空格与制表符（不含换行本身）。</summary>
+    private static string TrimLineEnd(string line)
+        => line.TrimEnd(' ', '\t');
+
+    /// <summary>文件末尾的空行（仅含空白）不计入内容行数。</summary>
+    private static int ContentLineCount(string[] lines)
+    {
+        int count = lines.Length;
+        while (count > 0 && TrimLineEnd(lines[count - 1]).Length == 0)
         {
-            result.IsMatch = true;
-            return result;
+            count--;
         }
 
-        result.IsMatch = false;
-        var actualLines = normalizedActual.Split(new[] { '\n' }, StringSplitOptions.None);
-        var expectedLines = normalizedExpected.Split(new[] { '\n' }, StringSplitOptions.None);
+        return count;
+    }
 
-        int maxLines = Math.Max(actualLines.Length, expectedLines.Length);
-        for (int i = 0; i < maxLines; i++)
+    private static bool LinesEqual(
+        string[] actual, string[] expected, int actualEnd, int expectedEnd)
+    {
+        if (actualEnd != expectedEnd)
+            return false;
+
+        for (int i = 0; i < actualEnd; i++)
         {
-            string actualLine = i < actualLines.Length ? actualLines[i] : EndOfFileMarker;
-            string expectedLine = i < expectedLines.Length ? expectedLines[i] : EndOfFileMarker;
+            if (!string.Equals(TrimLineEnd(actual[i]), TrimLineEnd(expected[i]), StringComparison.Ordinal))
+                return false;
+        }
 
-            if (actualLine != expectedLine)
+        return true;
+    }
+
+    private static void CollectDifferences(
+        ComparisonResult result,
+        string[] actual, string[] expected, int actualEnd, int expectedEnd)
+    {
+        int max = Math.Max(actualEnd, expectedEnd);
+        for (int i = 0; i < max; i++)
+        {
+            string actualLine = i < actualEnd ? actual[i] : EndOfFileMarker;
+            string expectedLine = i < expectedEnd ? expected[i] : EndOfFileMarker;
+
+            bool differs = i >= actualEnd
+                           || i >= expectedEnd
+                           || !string.Equals(TrimLineEnd(actualLine), TrimLineEnd(expectedLine), StringComparison.Ordinal);
+
+            if (differs)
             {
                 result.Differences.Add(new Difference
                 {
@@ -49,25 +94,5 @@ public class OutputComparer : IOutputComparer
                 });
             }
         }
-
-        if (result.Differences.Count == 0)
-        {
-            result.Differences.Add(new Difference
-            {
-                LineNumber = 0,
-                Actual = normalizedActual,
-                Expected = normalizedExpected,
-            });
-        }
-
-        return result;
-    }
-
-    private static string NormalizeOutput(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-            return string.Empty;
-
-        return text.Replace("\r\n", "\n").Replace("\r", "\n");
     }
 }
